@@ -26,3 +26,4 @@ The site permalink
 uses: andrewnicols/wait-for-netlify-preview
 with:
   site_id: 'some-site-id'
+  netlify_secret: ${{ secrets.NETLIFY_SECRET }}

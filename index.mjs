@@ -19,7 +19,7 @@ import core from '@actions/core';
 import github from '@actions/github';
 import { NetlifyAPI } from 'netlify';
 
-const client = new NetlifyAPI(process.env.NETLIFY_API_SECRET);
+const client = new NetlifyAPI(core.getInput('netlify_secret'));
 
 const getBuildId = async (prNumber) => {
   const builds = await client.listSiteBuilds({

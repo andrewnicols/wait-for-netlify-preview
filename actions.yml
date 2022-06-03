@@ -10,6 +10,9 @@ inputs:
   max_timeout:
     description: "The max time to run the action"
     required: false
+  netlify_secret:
+    description: "The Netlify Authentication secret"
+    required: true
 outputs:
   deployUrl:
     description: "The site permalink"
