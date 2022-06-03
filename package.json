@@ -1,0 +1,18 @@
+{
+  "name": "wait-for-netlify-preview",
+  "version": "1.0.0",
+  "description": "Wait for a Netlify Pull Request Deploy Preview to complete",
+  "main": "dist/index.mjs",
+  "repository": "https://github.com/andrewnicols/wait-for-netlify-preview",
+  "author": "Andrew Nicols <andrew@nicols.co.uk>",
+  "license": "MIT",
+  "dependencies": {
+    "@actions/core": "^1.8.2",
+    "@actions/github": "^5.0.3",
+    "commander": "^9.3.0",
+    "netlify": "^11.0.1"
+  },
+  "devDependencies": {
+    "@vercel/ncc": "^0.34.0"
+  }
+}

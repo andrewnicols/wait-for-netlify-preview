@@ -1,0 +1,18 @@
+name: "Wait for a Netlify build to complete"
+description: "Wait for a Netlify Deploy Preview to complete"
+branding:
+  icon: "clock"
+  color: "blue"
+inputs:
+  site_id:
+    description: "The site_id of the Netlify site to test against"
+    required: true
+  max_timeout:
+    description: "The max time to run the action"
+    required: false
+outputs:
+  deployUrl:
+    description: "The site permalink"
+runs:
+  using: "node16"
+  main: "index.mjs"
