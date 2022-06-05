@@ -25,6 +25,8 @@ const getBuildId = async (prNumber) => {
   const builds = await client.listSiteBuilds({
     site_id: core.getInput('site_id'),
   });
+  console.log(core.getInput('site_id'));
+  console.log(builds);
   const build = builds.find((data) => (data.sha === `pull/${prNumber}/head`));
   if (!build) {
     return null;
@@ -38,7 +40,11 @@ const pollUntilReady = async (prNumber, timeout = 300) => {
 
   do {
     const build = await getBuildId(prNumber);
-    console.debug('Checking');
+    if (build) {
+      console.debug(`Checking build ${build.id} (state: ${build?.state})`);
+    } else {
+      console.debug('No build data');
+    }
 
     if (build?.state === 'ready') {
       return build;
@@ -56,6 +62,8 @@ const run = async () => {
     );
   }
 
+  console.log(`Looking for Pull Request ${PR_NUMBER}`);
+
   const MAX_TIMEOUT = Number(core.getInput("max_timeout")) || 60;
 
   const deploy = await pollUntilReady(PR_NUMBER, MAX_TIMEOUT);
@@ -64,7 +72,7 @@ const run = async () => {
   }
 
   if (deploy.state === 'ready') {
-    console.info(`Build was successful and is available at ${deploy.links.permalink}`);
+    console.log(`Build was successful and is available at ${deploy.links.permalink}`);
     core.setOutput('deployUrl', deploy.links.permalink);
   }
 
