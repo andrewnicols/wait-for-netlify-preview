@@ -19,64 +19,79 @@ import core from '@actions/core';
 import github from '@actions/github';
 import { NetlifyAPI } from 'netlify';
 
+const MAX_TIMEOUT = Number(core.getInput("max_timeout")) || 60;
+const REDUCED_TIMEOUT = MAX_TIMEOUT / 2;
+const PR_NUMBER = github.context.payload.number;
+
 const client = new NetlifyAPI(core.getInput('netlify_secret'));
+const startTime = Date.now();
 
-const getBuildId = async (prNumber) => {
-  const builds = await client.listSiteBuilds({
-    site_id: core.getInput('site_id'),
-  });
-  console.log(core.getInput('site_id'));
-  console.log(builds);
-  const build = builds.find((data) => (data.sha === `pull/${prNumber}/head`));
-  if (!build) {
-    return null;
-  }
+if (!PR_NUMBER) {
+  core.setFailed(
+    "Action must be run in conjunction with the `pull_request` event"
+  );
+}
 
-  return client.getDeploy({ deploy_id: build.deploy_id });
-};
-
-const pollUntilReady = async (prNumber, timeout = 300) => {
-  const startTime = Date.now();
-
+/**
+ * Get the build information for the specified pull request.
+ *
+ * This is just the basic build information, and does not include the final state of the build.
+ *
+ * @return {object}
+ */
+const getBuildData = async () => {
   do {
-    const build = await getBuildId(prNumber);
+    // Fetch the list of site builds.
+    // Unfortunately the Netlify API does not provide a way to search for a specific build so all builds are fetched.
+    const builds = await client.listSiteBuilds({
+      site_id: core.getInput('site_id'),
+    });
+
+    // Look for the first build matching the PR Number.
+    const build = builds.find((data) => (data.sha === `pull/${PR_NUMBER}/head`));
     if (build) {
-      console.debug(`Checking build ${build.id} (state: ${build?.state})`);
-    } else {
-      console.debug('No build data');
+        return build;
     }
 
-    if (build?.state === 'ready') {
-      return build;
-    }
-  } while (((Date.now() - startTime) / 1000) < timeout);
+    // Sleep for 2 seconds to reduce hit on Netlify API.
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+  } while (((Date.now() - startTime) / 1000) < REDUCED_TIMEOUT);
 
-  return null;
+  // Timeout exceeded without finding a deployment.
+  core.setFailed(
+    `No build data found within the ${REDUCED_TIMEOUT} second timeout for Pull Request ${PR_NUMBER}`
+  );
+  process.exit();
 };
 
 const run = async () => {
-  const PR_NUMBER = github.context.payload.number;
-  if (!PR_NUMBER) {
-    core.setFailed(
-      "Action must be run in conjunction with the `pull_request` event"
-    );
+  const build = await getBuildData(PR_NUMBER, startTime);
+  if (build.done) {
+    if (build.error) {
+      core.setFailed(
+        `Build failed with error "${build.error}"`
+      );
+      process.exit();
+    }
   }
 
-  console.log(`Looking for Pull Request ${PR_NUMBER}`);
+  const { id, deploy_id, sha } = build;
+  do {
+    core.info(`Checking build ${id} with deploy_id ${deploy_id} and sha ${sha}`);
+    const deploy = await client.getDeploy({ deploy_id });
 
-  const MAX_TIMEOUT = Number(core.getInput("max_timeout")) || 60;
+    if (deploy?.state === 'ready') {
+      core.info(`Build was successful and is available at ${deploy.links.permalink}`);
+      core.setOutput('deployUrl', deploy.links.permalink);
+      process.exit(0);
+    }
+  } while (((Date.now() - startTime) / 1000) < MAX_TIMEOUT);
 
-  const deploy = await pollUntilReady(PR_NUMBER, MAX_TIMEOUT);
-  if (!deploy) {
-      core.setFailed(`Unable to find a build for ${PR_NUMBER}`);
-  }
-
-  if (deploy.state === 'ready') {
-    console.log(`Build was successful and is available at ${deploy.links.permalink}`);
-    core.setOutput('deployUrl', deploy.links.permalink);
-  }
-
-  core.setFailed('Unable to find a successful build');
+  // Timeout exceeded without the deployment succeeding.
+  core.setFailed(
+    `Unable to find a successful deployment within the timeout time.`
+  );
+  process.exit();
 };
 
 run();
