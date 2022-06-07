@@ -23,7 +23,8 @@ The site permalink
 
 ## Example usage
 
-uses: andrewnicols/wait-for-netlify-preview
-with:
-  site_id: 'some-site-id'
-  netlify_secret: ${{ secrets.NETLIFY_SECRET }}
+    uses: andrewnicols/wait-for-netlify-preview
+    with:
+      site_id: 'some-site-id'
+      max_timeout: 1000
+      netlify_secret: ${{ secrets.NETLIFY_SECRET }}
