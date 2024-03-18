@@ -53,8 +53,8 @@ const getBuildData = async () => {
         return build;
     }
 
-    // Sleep for 2 seconds to reduce hit on Netlify API.
-    await new Promise((resolve) => setTimeout(resolve, 2000));
+    // Sleep for 5 seconds to reduce hit on Netlify API.
+    await new Promise((resolve) => setTimeout(resolve, 5000));
   } while (((Date.now() - startTime) / 1000) < REDUCED_TIMEOUT);
 
   // Timeout exceeded without finding a deployment.
